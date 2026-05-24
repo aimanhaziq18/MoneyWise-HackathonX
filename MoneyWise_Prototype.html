@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoneyWise Prototype</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: #1d1d1d;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 34px 12px;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #000;
+  }
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  .screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+    background: #fff;
+  }
+  .theme-onboarding { background: #fff; }
+  .theme-app { background: #fff; }
+  .theme-app::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 8px solid #f4f4f4;
+    pointer-events: none;
+  }
+  .screen.active { display: block; }
+  .title {
+    position: absolute;
+    top: 42px;
+    left: 16px;
+    right: 16px;
+    font-size: 30px;
+    font-weight: 400;
+    line-height: 1.2;
+  }
+  .label {
+    display: block;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 400;
+    margin-bottom: 14px;
+  }
+  .field-box,
+  .select-box,
+  .calendar-box,
+  .warning-box,
+  .category-box,
+  .budget-row {
+    background: #d9d9d9;
+    border: 0;
+  }
+  .field-box {
+    width: 242px;
+    height: 83px;
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 22px;
+    outline: none;
+  }
+  .field-box::placeholder { color: #8a8a8a; }
+  .date-field {
+    width: 242px;
+    height: 82px;
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 16px;
+    font-family: inherit;
+    outline: none;
+  }
+  .next-btn {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 109px;
+    height: 36px;
+    border: 0;
+    border-radius: 18px;
+    background: #d9d9d9;
+    color: #000;
+    font-size: 16px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .setup-income { position: absolute; top: 146px; left: 0; right: 0; }
+  .setup-goal { position: absolute; top: 270px; left: 0; right: 0; }
+  .setup-start-date { position: absolute; top: 393px; left: 0; right: 0; }
+  .setup-end-date { position: absolute; top: 516px; left: 0; right: 0; }
+  #screen-start .next-btn { top: 704px; }
+
+  .center-question {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    text-align: center;
+    font-size: 16px;
+    line-height: 1.3;
+  }
+  #screen-categories .center-question { top: 193px; }
+  .category-box {
+    position: absolute;
+    top: 257px;
+    left: 60px;
+    width: 242px;
+    min-height: 83px;
+    padding: 14px 18px;
+    font-size: 16px;
+  }
+  .category-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 8px 0;
+  }
+  .category-option input { width: 16px; height: 16px; }
+  #screen-categories .next-btn { top: 383px; }
+
+  #screen-most .center-question { top: 210px; }
+  .select-box {
+    position: absolute;
+    top: 257px;
+    left: 60px;
+    width: 242px;
+    height: 83px;
+    text-align: center;
+    font-size: 16px;
+    font-family: inherit;
+    outline: none;
+    padding: 0 20px;
+  }
+  #screen-most .next-btn { top: 383px; }
+
+  .loading-main {
+    position: absolute;
+    top: 258px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 16px;
+  }
+  .loading-text {
+    position: absolute;
+    top: 349px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 16px;
+  }
+
+  .wallet-chip {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    min-width: 128px;
+    height: 42px;
+    background: #d9d9d9;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 5px 12px;
+    font-size: 11px;
+    line-height: 1.2;
+    z-index: 3;
+  }
+  .wallet-chip strong { font-size: 15px; font-weight: 700; }
+  .account-link {
+    flex: 1;
+    height: 24px;
+    border: 0;
+    border-radius: 12px;
+    background: #ececec;
+    font-size: 10px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .account-actions {
+    position: absolute;
+    top: 64px;
+    right: 18px;
+    width: 160px;
+    display: flex;
+    gap: 5px;
+    z-index: 3;
+  }
+  .circle {
+    position: absolute;
+    top: 145px;
+    left: 68px;
+    width: 212px;
+    height: 232px;
+    border-radius: 50%;
+    background: #d9d9d9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1.2;
+    overflow: hidden;
+  }
+  .pie-chart {
+    width: 212px;
+    height: 212px;
+    border-radius: 50%;
+    position: relative;
+    background: #d9d9d9;
+  }
+  .pie-center {
+    position: absolute;
+    inset: 48px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 10px;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+  .pie-center strong {
+    display: block;
+    font-size: 12px;
+    margin-top: 2px;
+  }
+  .pie-legend {
+    position: absolute;
+    left: 92px;
+    right: 24px;
+    top: 356px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px 10px;
+    font-size: 10px;
+  }
+  .pie-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+  .pie-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    background: #d9d9d9;
+  }
+  .pie-legend-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .budget-list {
+    position: absolute;
+    top: 520px;
+    left: 29px;
+    width: 294px;
+  }
+  .budget-row {
+    width: 294px;
+    height: 52px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 31px;
+    font-size: 16px;
+  }
+  .budget-explain {
+    position: absolute;
+    top: 388px;
+    left: 84px;
+    width: 274px;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+  .budget-tip {
+    margin-top: 4px;
+    font-weight: 700;
+  }
+  .budget-list-title {
+    position: absolute;
+    top: 472px;
+    left: 84px;
+    width: 274px;
+    font-size: 10px;
+    line-height: 1.2;
+    font-weight: 700;
+  }
+  .goal-status {
+    position: absolute;
+    top: 724px;
+    left: 84px;
+    width: 274px;
+    background: #ededed;
+    padding: 8px 10px;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+  .goal-status strong {
+    display: block;
+    font-size: 11px;
+    margin-bottom: 2px;
+  }
+  .cancel-budget-btn {
+    position: absolute;
+    top: 774px;
+    left: 140px;
+    width: 160px;
+    height: 30px;
+    border: 0;
+    border-radius: 15px;
+    background: #d9d9d9;
+    color: #8a0000;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .calendar-panel {
+    position: absolute;
+    top: 82px;
+    left: 30px;
+    width: 287px;
+    height: 310px;
+  }
+  .calendar-title {
+    text-align: center;
+    font-size: 16px;
+    margin-top: 26px;
+  }
+  .calendar-switcher {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .calendar-switcher button {
+    width: 28px;
+    height: 24px;
+    border: 0;
+    background: #eeeeee;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  #calendar-month-label {
+    min-width: 112px;
+    text-align: center;
+    font-size: 12px;
+  }
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    padding: 12px 16px 18px;
+    font-size: 10px;
+    text-align: center;
+  }
+  .calendar-day {
+    min-height: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #eeeeee;
+    line-height: 1.1;
+    padding: 2px;
+  }
+  .calendar-day.goal-day { background: #bdbdbd; font-weight: 700; }
+  .calendar-day.has-log { background: #cfcfcf; }
+  .calendar-money { font-size: 8px; font-weight: 400; margin-top: 2px; }
+  .warning-box {
+    position: absolute;
+    top: 511px;
+    left: 30px;
+    width: 287px;
+    min-height: 188px;
+    padding: 33px 24px;
+    text-align: center;
+    font-size: 16px;
+    line-height: 1.4;
+  }
+  .muted { color: #505050; font-size: 13px; margin-top: 12px; }
+  .game-panel {
+    position: absolute;
+    top: 70px;
+    left: 18px;
+    width: 240px;
+    height: 150px;
+    background: #d9d9d9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+  .overspend-line {
+    position: absolute;
+    top: 232px;
+    left: 18px;
+    width: 240px;
+    text-align: center;
+    font-size: 12px;
+  }
+  .rescue-box {
+    position: absolute;
+    top: 290px;
+    left: 20px;
+    width: 226px;
+    min-height: 96px;
+    background: #d9d9d9;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.25;
+  }
+  .daily-form {
+    position: absolute;
+    top: 54px;
+    left: 0;
+    right: 0;
+  }
+  .daily-group {
+    margin-bottom: 27px;
+    text-align: center;
+  }
+  .daily-label {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 3px;
+  }
+  .daily-input,
+  .daily-select,
+  .daily-date {
+    width: 118px;
+    height: 41px;
+    background: #d9d9d9;
+    border: 0;
+    text-align: center;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+  }
+  .daily-select { padding: 0 8px; }
+  .daily-ok {
+    width: 67px;
+    height: 30px;
+    border: 0;
+    border-radius: 15px;
+    background: #d9d9d9;
+    color: #000;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .daily-log-list {
+    position: absolute;
+    top: 438px;
+    left: 82px;
+    width: 278px;
+    max-height: 220px;
+    overflow: auto;
+    font-size: 11px;
+    line-height: 1.35;
+    text-align: left;
+  }
+  .log-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #f4f4f4;
+  }
+  .log-table th,
+  .log-table td {
+    border-bottom: 1px solid #d9d9d9;
+    padding: 6px 5px;
+    font-size: 10px;
+    text-align: left;
+  }
+  .log-table th {
+    background: #d9d9d9;
+    font-weight: 700;
+  }
+  .log-empty {
+    background: #d9d9d9;
+    padding: 12px;
+    text-align: center;
+  }
+  .log-totals {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .log-total-box {
+    background: #d9d9d9;
+    padding: 8px 6px;
+    text-align: center;
+    font-size: 10px;
+  }
+  .log-total-box strong {
+    display: block;
+    font-size: 13px;
+    margin-top: 2px;
+  }
+  .auth-panel {
+    position: absolute;
+    top: 112px;
+    left: 42px;
+    width: 306px;
+    background: #f1f1f1;
+    padding: 24px 24px 20px;
+  }
+  .auth-title {
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .auth-input {
+    width: 100%;
+    height: 48px;
+    border: 0;
+    background: #d9d9d9;
+    margin-bottom: 14px;
+    text-align: center;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+  }
+  .auth-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .auth-actions button,
+  .auth-wide {
+    min-height: 36px;
+    border: 0;
+    border-radius: 18px;
+    background: #d9d9d9;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .auth-wide {
+    width: 100%;
+    margin-top: 10px;
+  }
+  .auth-status {
+    min-height: 34px;
+    margin-top: 14px;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .login-checklist {
+    margin-top: 12px;
+    background: #d9d9d9;
+    padding: 10px 12px;
+    font-size: 11px;
+    line-height: 1.45;
+    min-height: 76px;
+  }
+  .login-checklist div { margin-bottom: 4px; }
+  .reset-panel {
+    position: absolute;
+    top: 150px;
+    left: 66px;
+    width: 258px;
+    text-align: center;
+  }
+  .reset-title {
+    font-size: 20px;
+    font-weight: 400;
+    margin-bottom: 28px;
+  }
+  .reset-input {
+    width: 190px;
+    height: 52px;
+    border: 0;
+    background: #d9d9d9;
+    margin-bottom: 22px;
+    text-align: center;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+  }
+  .reset-ok {
+    width: 98px;
+    height: 36px;
+    border: 0;
+    border-radius: 18px;
+    background: #d9d9d9;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .reset-status {
+    min-height: 34px;
+    margin-top: 18px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .side-nav {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 72px;
+    background: #f2f2f2;
+    border-right: 1px solid #d9d9d9;
+    padding: 16px 8px;
+    z-index: 5;
+  }
+  .side-brand {
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    text-align: center;
+  }
+  .side-section {
+    margin-bottom: 18px;
+  }
+  .side-heading {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: #666;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .side-nav button {
+    width: 100%;
+    min-height: 28px;
+    border: 0;
+    border-radius: 7px;
+    background: #d9d9d9;
+    margin-bottom: 7px;
+    font-size: 9px;
+    line-height: 1.1;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 4px 3px;
+  }
+  .side-nav button:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+  }
+  .side-nav .side-view button { background: #e8e8e8; }
+  .with-sidebar .title { left: 88px; font-size: 25px; }
+  .with-sidebar .setup-income,
+  .with-sidebar .setup-goal,
+  .with-sidebar .setup-date,
+  .with-sidebar .daily-form {
+    left: 72px;
+  }
+  .with-sidebar .center-question,
+  .with-sidebar .loading-main,
+  .with-sidebar .loading-text {
+    left: 86px;
+  }
+  .with-sidebar .category-box,
+  .with-sidebar .select-box {
+    left: 104px;
+  }
+  .with-sidebar .circle { left: 106px; }
+  .with-sidebar .budget-list { left: 84px; }
+  .with-sidebar .calendar-panel,
+  .with-sidebar .warning-box {
+    left: 88px;
+  }
+  .with-sidebar .game-panel,
+  .with-sidebar .overspend-line {
+    left: 94px;
+  }
+  .with-sidebar .rescue-box { left: 96px; }
+  .with-sidebar .daily-log-list { left: 116px; }
+</style>
+</head>
+<body>
+<main class="phone">
+  <section class="screen theme-onboarding" id="screen-start">
+    <h1 class="title">welcome to MoneyWise</h1>
+
+    <div class="setup-income">
+      <label class="label" for="income-input">enter your monthly income</label>
+      <input class="field-box" id="income-input" type="number" inputmode="decimal" value="3000" placeholder="RM">
+    </div>
+
+    <div class="setup-goal">
+      <label class="label" for="saving-goal">enter your saving goals</label>
+      <input class="field-box" id="saving-goal" type="number" inputmode="decimal" value="500" placeholder="RM">
+    </div>
+
+    <div class="setup-start-date">
+      <label class="label" for="goal-start-date">choose start date</label>
+      <input class="field-box date-field" id="goal-start-date" type="date">
+    </div>
+
+    <div class="setup-end-date">
+      <label class="label" for="goal-date">choose end date</label>
+      <input class="field-box date-field" id="goal-date" type="date">
+    </div>
+
+    <button class="next-btn" onclick="goToCategories()">next</button>
+  </section>
+
+  <section class="screen theme-onboarding" id="screen-categories">
+    <p class="center-question">select 3 categories for your expenses</p>
+    <div class="category-box" id="category-list"></div>
+    <button class="next-btn" onclick="goToMostSpent()">next</button>
+  </section>
+
+  <section class="screen theme-onboarding" id="screen-most">
+    <p class="center-question">which category you spend the most?</p>
+    <select class="select-box" id="most-category"></select>
+    <button class="next-btn" onclick="generateBudget()">next</button>
+  </section>
+
+  <section class="screen theme-onboarding" id="screen-loading">
+    <p class="loading-main">AI generate your recommendation budget</p>
+    <p class="loading-text">loading..</p>
+  </section>
+
+  <section class="screen active theme-app" id="screen-budget">
+    <div class="wallet-chip">
+      <span>wallet</span>
+      <strong data-wallet>RM0</strong>
+    </div>
+    <div class="account-actions">
+      <button class="account-link" onclick="switchAccount()">switch account</button>
+      <button class="account-link" onclick="logoutFromTop()">log out</button>
+    </div>
+    <div class="circle" id="budget-summary">percentage of money that user need to spend for each categories</div>
+    <div class="pie-legend" id="pie-legend"></div>
+    <div class="budget-explain" id="budget-explain"></div>
+    <div class="budget-list-title" id="budget-list-title"></div>
+    <div class="budget-list" id="budget-list"></div>
+    <div class="goal-status" id="goal-status"></div>
+    <button class="next-btn" style="top:682px;" onclick="showCalendar()">next</button>
+    <button class="cancel-budget-btn" onclick="cancelBudget()">cancel budget</button>
+  </section>
+
+  <section class="screen theme-app" id="screen-calendar">
+    <div class="wallet-chip">
+      <span>wallet</span>
+      <strong data-wallet>RM0</strong>
+    </div>
+    <div class="account-actions">
+      <button class="account-link" onclick="switchAccount()">switch account</button>
+      <button class="account-link" onclick="logoutFromTop()">log out</button>
+    </div>
+    <div class="calendar-box calendar-panel">
+      <p class="calendar-title">calendar</p>
+      <div class="calendar-switcher">
+        <button onclick="changeCalendarMonth(-1)" aria-label="previous month">‹</button>
+        <span id="calendar-month-label"></span>
+        <button onclick="changeCalendarMonth(1)" aria-label="next month">›</button>
+      </div>
+      <div class="calendar-grid" id="calendar-grid"></div>
+    </div>
+    <div class="warning-box">
+      <p id="warning-title">warning</p>
+      <p class="muted" id="warning-detail"></p>
+    </div>
+    <button class="next-btn" style="top:735px;" onclick="showRescue()">next</button>
+  </section>
+
+  <section class="screen theme-app" id="screen-rescue">
+    <div class="wallet-chip">
+      <span>wallet</span>
+      <strong data-wallet>RM0</strong>
+    </div>
+    <div class="account-actions">
+      <button class="account-link" onclick="switchAccount()">switch account</button>
+      <button class="account-link" onclick="logoutFromTop()">log out</button>
+    </div>
+    <div class="game-panel">game effect</div>
+    <p class="overspend-line" id="overspend-line">you have overspend RM280</p>
+    <div class="rescue-box" id="rescue-box"></div>
+    <button class="next-btn" style="top:435px;" onclick="showDailyLog()">daily log</button>
+  </section>
+
+  <section class="screen theme-app" id="screen-daily-log">
+    <div class="wallet-chip">
+      <span>wallet</span>
+      <strong data-wallet>RM0</strong>
+    </div>
+    <div class="account-actions">
+      <button class="account-link" onclick="switchAccount()">switch account</button>
+      <button class="account-link" onclick="logoutFromTop()">log out</button>
+    </div>
+    <div class="daily-form">
+      <div class="daily-group">
+        <label class="daily-label" for="daily-expense">add expenses</label>
+        <input class="daily-input" id="daily-expense" type="number" inputmode="decimal" placeholder="RM">
+      </div>
+      <div class="daily-group">
+        <label class="daily-label" for="daily-category">category</label>
+        <select class="daily-select" id="daily-category"></select>
+      </div>
+      <div class="daily-group" style="margin-bottom:35px;">
+        <label class="daily-label" for="daily-earn">earn</label>
+        <input class="daily-input" id="daily-earn" type="number" inputmode="decimal" placeholder="RM">
+      </div>
+      <div class="daily-group" style="margin-bottom:28px;">
+        <label class="daily-label" for="daily-date">date</label>
+        <input class="daily-date" id="daily-date" type="date">
+      </div>
+      <div style="text-align:center;">
+        <button class="daily-ok" onclick="saveDailyLog()">ok</button>
+      </div>
+    </div>
+    <div class="daily-log-list" id="daily-log-list"></div>
+  </section>
+
+  <section class="screen theme-app" id="screen-auth">
+    <div class="auth-panel">
+      <h2 class="auth-title">MoneyWise account</h2>
+      <input class="auth-input" id="auth-email" type="email" placeholder="email">
+      <input class="auth-input" id="auth-password" type="password" placeholder="password">
+      <div class="auth-actions">
+        <button onclick="createAccount()">create account</button>
+        <button onclick="loginAccount()">login</button>
+      </div>
+      <button class="auth-wide" onclick="forgotPassword()">forget password</button>
+      <button class="auth-wide" onclick="logoutAccount()">logout</button>
+      <p class="auth-status" id="auth-status"></p>
+      <div class="login-checklist" id="login-checklist"></div>
+    </div>
+  </section>
+
+  <section class="screen theme-onboarding" id="screen-reset-password">
+    <div class="reset-panel">
+      <h2 class="reset-title">reset password</h2>
+      <label class="daily-label" for="reset-password">new password</label>
+      <input class="reset-input" id="reset-password" type="password" placeholder="password">
+      <label class="daily-label" for="reset-confirm">confirm password</label>
+      <input class="reset-input" id="reset-confirm" type="password" placeholder="confirm">
+      <button class="reset-ok" onclick="updatePassword()">ok</button>
+      <p class="reset-status" id="reset-status"></p>
+    </div>
+  </section>
+</main>
+
+<script>
+const CATS = [
+  { name: 'food', recommended: 0.25 },
+  { name: 'transportation', recommended: 0.15 },
+  { name: 'entertainment', recommended: 0.10 },
+  { name: 'shopping', recommended: 0.10 },
+  { name: 'bills', recommended: 0.20 },
+  { name: 'education', recommended: 0.10 },
+  { name: 'others', recommended: 0.10 }
+];
+
+const CAT_COLORS = {
+  food: '#9e9e9e',
+  transportation: '#bdbdbd',
+  entertainment: '#cfcfcf',
+  shopping: '#a8a8a8',
+  bills: '#8f8f8f',
+  education: '#bebebe',
+  others: '#d0d0d0',
+  goal: '#ededed'
+};
+
+
+let budgetRows = [];
+let dailyLogs = [];
+let supabaseClient = null;
+let currentUser = null;
+let setupLocked = false;
+let calendarViewDate = new Date();
+
+function init() {
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setMonth(endDate.getMonth() + 1);
+  document.getElementById('goal-start-date').value = toISODate(startDate);
+  document.getElementById('goal-date').value = toISODate(endDate);
+  document.getElementById('daily-date').value = toISODate(new Date());
+  renderSidebars();
+  renderCategoryInputs();
+  renderMostSpentOptions();
+  renderDailyCategoryOptions();
+  calculateBudget();
+  renderBudget();
+  updateWallet();
+  setupAuthListener();
+  handleResetRedirect();
+}
+
+function showScreen(id) {
+  if (setupLocked && ['screen-start', 'screen-categories', 'screen-most'].includes(id)) {
+    showScreen('screen-budget');
+    return;
+  }
+  document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  updateWallet();
+}
+
+function openSetupPage(id) {
+  if (setupLocked) {
+    alert('Budget setup is locked for this goal period. Use Daily Log for new entries.');
+    showScreen('screen-budget');
+    return;
+  }
+  showScreen(id);
+}
+
+function updateSetupLockUI() {
+  document.querySelectorAll('[data-one-time-input]').forEach(button => {
+    button.disabled = setupLocked;
+    button.title = setupLocked ? 'Locked after budget setup is completed' : '';
+  });
+}
+
+function isProfileComplete(profile = null) {
+  if (profile) {
+    return Boolean(
+      Number(profile.income) > 0 &&
+      Number(profile.saving_goal) > 0 &&
+      profile.goal_start_date &&
+      profile.goal_date &&
+      Array.isArray(profile.selected_categories) &&
+      profile.selected_categories.length === 3 &&
+      profile.most_category
+    );
+  }
+  return Boolean(
+    Number(document.getElementById('income-input').value) > 0 &&
+    getSavingGoal() > 0 &&
+    document.getElementById('goal-start-date').value &&
+    document.getElementById('goal-date').value &&
+    getSelectedCategories().length === 3 &&
+    document.getElementById('most-category').value
+  );
+}
+
+function renderSidebars() {
+  const excluded = new Set(['screen-auth', 'screen-reset-password']);
+  document.querySelectorAll('.screen').forEach(screen => {
+    if (excluded.has(screen.id)) return;
+    screen.classList.add('with-sidebar');
+    if (screen.querySelector('.side-nav')) return;
+    screen.insertAdjacentHTML('afterbegin', `
+      <aside class="side-nav" aria-label="MoneyWise sections">
+        <div class="side-brand">MW</div>
+        <div class="side-section">
+          <div class="side-heading">INPUT</div>
+          <button data-one-time-input onclick="openSetupPage('screen-start')">setup</button>
+          <button data-one-time-input onclick="openSetupPage('screen-categories')">categories</button>
+          <button data-one-time-input onclick="openSetupPage('screen-most')">most spent</button>
+          <button onclick="showDailyLog()">daily log</button>
+        </div>
+        <div class="side-section side-view">
+          <div class="side-heading">VIEW</div>
+          <button onclick="showScreen('screen-budget')">budget</button>
+          <button onclick="showCalendar()">calendar</button>
+          <button onclick="showRescue()">rescue</button>
+          <button onclick="generateBudget()">AI load</button>
+        </div>
+      </aside>
+    `);
+  });
+  updateSetupLockUI();
+}
+
+function toISODate(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function getIncome() {
+  const baseIncome = Number(document.getElementById('income-input').value) || 0;
+  const extraEarned = getPeriodLogs().reduce((sum, log) => sum + log.earn, 0);
+  return baseIncome + extraEarned;
+}
+
+function getWalletBalance() {
+  const baseIncome = Number(document.getElementById('income-input').value) || 0;
+  const periodLogs = getPeriodLogs();
+  const earned = periodLogs.reduce((sum, log) => sum + log.earn, 0);
+  const spent = periodLogs.reduce((sum, log) => sum + log.expense, 0);
+  return baseIncome + earned - spent;
+}
+
+function updateWallet() {
+  const balance = getWalletBalance();
+  document.querySelectorAll('[data-wallet]').forEach(el => {
+    el.textContent = `RM${balance}`;
+    el.style.color = balance < 0 ? '#b00020' : '#000';
+  });
+}
+
+function isSupabaseConfigured() {
+  return SUPABASE_URL.startsWith('https://') && SUPABASE_ANON_KEY.length > 40;
+}
+
+function getSupabaseClient() {
+  if (!isSupabaseConfigured()) return null;
+  if (!supabaseClient) {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return supabaseClient;
+}
+
+function showAuth() {
+  showScreen('screen-auth');
+  refreshAuthStatus();
+}
+
+function switchAccount() {
+  showAuth();
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-email').focus();
+  setAuthStatus(currentUser?.email ? `Logged in as ${currentUser.email}. Enter another account to switch.` : 'Enter an account to log in.');
+}
+
+function setAuthStatus(message, isError = false) {
+  const status = document.getElementById('auth-status');
+  status.textContent = message;
+  status.style.color = isError ? '#b00020' : '#000';
+}
+
+function setLoginChecklist(items) {
+  const list = document.getElementById('login-checklist');
+  if (!list) return;
+  list.innerHTML = items.map(item => `<div>${item}</div>`).join('');
+}
+
+function setResetStatus(message, isError = false) {
+  const status = document.getElementById('reset-status');
+  status.textContent = message;
+  status.style.color = isError ? '#b00020' : '#000';
+}
+
+function getAuthFields() {
+  return {
+    email: document.getElementById('auth-email').value.trim(),
+    password: document.getElementById('auth-password').value
+  };
+}
+
+function requireSupabase() {
+  const client = getSupabaseClient();
+  if (!client) {
+    setAuthStatus('Add your Supabase URL and anon key in the HTML first.', true);
+    return null;
+  }
+  return client;
+}
+
+async function setupAuthListener() {
+  const client = getSupabaseClient();
+  if (!client) return;
+  const { data } = await client.auth.getSession();
+  if (data.session?.user) {
+    currentUser = data.session.user;
+    await loadUserData();
+  }
+  client.auth.onAuthStateChange(async (_event, session) => {
+    currentUser = session?.user || null;
+    if (document.getElementById('screen-auth').classList.contains('active')) {
+      setAuthStatus(session?.user?.email ? `Logged in as ${session.user.email}` : 'Not logged in');
+    }
+    if (currentUser) {
+      await loadUserData();
+    } else {
+      dailyLogs = [];
+      calculateBudget();
+      renderBudget();
+      updateWallet();
+    }
+  });
+}
+
+function handleResetRedirect() {
+  const params = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const isRecovery = params.get('reset') === '1' || hashParams.get('type') === 'recovery';
+  if (isRecovery) {
+    showScreen('screen-reset-password');
+    setResetStatus('Enter your new password.');
+  }
+}
+
+async function refreshAuthStatus() {
+  const client = requireSupabase();
+  if (!client) return;
+  const { data, error } = await client.auth.getSession();
+  if (error) {
+    setAuthStatus(error.message, true);
+    return;
+  }
+  currentUser = data.session?.user || null;
+  setAuthStatus(data.session?.user?.email ? `Logged in as ${data.session.user.email}` : 'Not logged in');
+}
+
+async function createAccount() {
+  const client = requireSupabase();
+  if (!client) return;
+  const { email, password } = getAuthFields();
+  if (!email || password.length < 6) {
+    setAuthStatus('Enter an email and password with at least 6 characters.', true);
+    return;
+  }
+  setAuthStatus('Creating account...');
+  const { data, error } = await client.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: window.location.origin }
+  });
+  if (error) {
+    setAuthStatus(error.message, true);
+    return;
+  }
+  if (data.session?.user) {
+    currentUser = data.session.user;
+    await saveProfile();
+    await loadUserData();
+  }
+  setAuthStatus(data.session ? `Logged in as ${data.user.email}` : 'Account created. Check your email to confirm.');
+}
+
+async function loginAccount() {
+  const client = requireSupabase();
+  if (!client) return;
+  const { email, password } = getAuthFields();
+  if (!email || !password) {
+    setAuthStatus('Enter your email and password.', true);
+    return;
+  }
+  setLoginChecklist([
+    '☐ checking email and password',
+    '☐ connecting to Supabase',
+    '☐ loading saved setup',
+    '☐ choosing start page'
+  ]);
+  setAuthStatus('Logging in...');
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
+  if (error) {
+    setLoginChecklist([
+      '☒ checking email and password',
+      '☒ connecting to Supabase',
+      '☐ loading saved setup',
+      '☐ choosing start page'
+    ]);
+    setAuthStatus(error.message, true);
+    return;
+  }
+  setLoginChecklist([
+    '☑ checking email and password',
+    '☑ connecting to Supabase',
+    '☐ loading saved setup',
+    '☐ choosing start page'
+  ]);
+  currentUser = data.user;
+  const hasProfileData = await loadUserData();
+  setLoginChecklist([
+    '☑ checking email and password',
+    '☑ connecting to Supabase',
+    hasProfileData ? '☑ saved setup found' : '☒ saved setup empty',
+    hasProfileData ? '☑ opening view page' : '☑ opening input page'
+  ]);
+  setAuthStatus(`Logged in as ${data.user.email}`);
+  showScreen(hasProfileData ? 'screen-budget' : 'screen-start');
+}
+
+async function forgotPassword() {
+  const client = requireSupabase();
+  if (!client) return;
+  const { email } = getAuthFields();
+  if (!email) {
+    setAuthStatus('Enter your email first.', true);
+    return;
+  }
+  setAuthStatus('Sending reset email...');
+  const { error } = await client.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}?reset=1`
+  });
+  if (error) {
+    setAuthStatus(error.message, true);
+    return;
+  }
+  setAuthStatus('Password reset email sent.');
+}
+
+async function logoutAccount() {
+  const client = requireSupabase();
+  if (!client) return;
+  const { error } = await client.auth.signOut();
+  if (error) {
+    setAuthStatus(error.message, true);
+    return;
+  }
+  currentUser = null;
+  dailyLogs = [];
+  setupLocked = false;
+  updateSetupLockUI();
+  calculateBudget();
+  renderBudget();
+  updateWallet();
+  renderDailyLogList();
+  setAuthStatus('Logged out.');
+}
+
+async function logoutFromTop() {
+  showAuth();
+  await logoutAccount();
+}
+
+async function updatePassword() {
+  const client = getSupabaseClient();
+  if (!client) {
+    setResetStatus('Add your Supabase URL and key first.', true);
+    return;
+  }
+
+  const password = document.getElementById('reset-password').value;
+  const confirm = document.getElementById('reset-confirm').value;
+  if (password.length < 6) {
+    setResetStatus('Password must be at least 6 characters.', true);
+    return;
+  }
+  if (password !== confirm) {
+    setResetStatus('Passwords do not match.', true);
+    return;
+  }
+
+  setResetStatus('Updating password...');
+  const { error } = await client.auth.updateUser({ password });
+  if (error) {
+    setResetStatus(error.message, true);
+    return;
+  }
+
+  document.getElementById('reset-password').value = '';
+  document.getElementById('reset-confirm').value = '';
+  window.history.replaceState({}, document.title, window.location.origin);
+  setResetStatus('Password updated. You can continue to MoneyWise.');
+  setTimeout(() => showScreen('screen-budget'), 900);
+}
+
+async function saveProfile() {
+  const client = getSupabaseClient();
+  if (!client || !currentUser) return;
+
+  const { error } = await client.from('profiles').upsert({
+    user_id: currentUser.id,
+    income: Number(document.getElementById('income-input').value) || 0,
+    saving_goal: getSavingGoal(),
+    goal_start_date: document.getElementById('goal-start-date').value || null,
+    goal_date: document.getElementById('goal-date').value || null,
+    selected_categories: getSelectedCategories(),
+    most_category: document.getElementById('most-category').value || null,
+    updated_at: new Date().toISOString()
+  });
+
+  if (error) {
+    setAuthStatus(`Profile save failed: ${error.message}`, true);
+  }
+}
+
+async function loadUserData() {
+  const client = getSupabaseClient();
+  if (!client || !currentUser) return false;
+
+  const [{ data: profile, error: profileError }, { data: logs, error: logsError }] = await Promise.all([
+    client.from('profiles').select('*').eq('user_id', currentUser.id).maybeSingle(),
+    client.from('daily_logs').select('*').eq('user_id', currentUser.id).order('log_date', { ascending: false }).order('created_at', { ascending: false })
+  ]);
+
+  if (profileError) {
+    setAuthStatus(`Profile load failed: ${profileError.message}`, true);
+    return false;
+  }
+  if (logsError) {
+    setAuthStatus(`Daily logs load failed: ${logsError.message}`, true);
+    return false;
+  }
+
+  const hasProfileData = isProfileComplete(profile);
+  setupLocked = hasProfileData;
+  updateSetupLockUI();
+
+  if (profile) {
+    document.getElementById('income-input').value = profile.income || 0;
+    document.getElementById('saving-goal').value = profile.saving_goal || 0;
+    if (profile.goal_start_date) document.getElementById('goal-start-date').value = profile.goal_start_date;
+    if (profile.goal_date) document.getElementById('goal-date').value = profile.goal_date;
+    setSelectedCategories(profile.selected_categories || []);
+    if (profile.most_category) {
+      renderMostSpentOptions();
+      document.getElementById('most-category').value = profile.most_category;
+    }
+  } else {
+    await saveProfile();
+  }
+
+  dailyLogs = (logs || []).map(log => ({
+    id: log.id,
+    expense: Number(log.expense) || 0,
+    earn: Number(log.earn) || 0,
+    category: log.category,
+    date: log.log_date
+  }));
+
+  calculateBudget();
+  renderBudget();
+  renderDailyLogList();
+  updateWallet();
+  if (document.getElementById('screen-calendar').classList.contains('active')) renderCalendar();
+  if (document.getElementById('screen-rescue').classList.contains('active')) renderRescue();
+  return hasProfileData;
+}
+
+async function saveDailyLogToSupabase(log) {
+  const client = getSupabaseClient();
+  if (!client || !currentUser) return null;
+
+  const { data, error } = await client
+    .from('daily_logs')
+    .insert({
+      user_id: currentUser.id,
+      log_date: log.date,
+      category: log.category,
+      expense: log.expense,
+      earn: log.earn
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    alert(`Daily log save failed: ${error.message}`);
+    return null;
+  }
+  return data.id;
+}
+
+async function cancelBudget() {
+  if (!confirm('Cancel this budget and clear setup, categories, goal dates, and daily logs? Login will stay active.')) {
+    return;
+  }
+
+  const client = getSupabaseClient();
+  if (client && currentUser) {
+    const logsResult = await client.from('daily_logs').delete().eq('user_id', currentUser.id);
+    if (logsResult.error) {
+      alert(`Could not clear daily logs: ${logsResult.error.message}`);
+      return;
+    }
+
+    const profileResult = await client.from('profiles').delete().eq('user_id', currentUser.id);
+    if (profileResult.error) {
+      alert(`Could not clear profile: ${profileResult.error.message}`);
+      return;
+    }
+  }
+
+  resetBudgetInputs();
+  setupLocked = false;
+  updateSetupLockUI();
+  dailyLogs = [];
+  calculateBudget();
+  renderBudget();
+  renderDailyLogList();
+  updateWallet();
+  showScreen('screen-start');
+}
+
+function resetBudgetInputs() {
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setMonth(endDate.getMonth() + 1);
+
+  document.getElementById('income-input').value = '';
+  document.getElementById('saving-goal').value = '';
+  document.getElementById('goal-start-date').value = toISODate(startDate);
+  document.getElementById('goal-date').value = toISODate(endDate);
+  document.querySelectorAll('input[name="category"]').forEach(input => {
+    input.checked = false;
+  });
+  renderMostSpentOptions();
+  document.getElementById('daily-expense').value = '';
+  document.getElementById('daily-earn').value = '';
+  document.getElementById('daily-date').value = toISODate(new Date());
+}
+
+function getDailyExpenseTotal() {
+  return getPeriodLogs().reduce((sum, log) => sum + log.expense, 0);
+}
+
+function getPeriodBounds() {
+  const start = document.getElementById('goal-start-date').value;
+  const end = document.getElementById('goal-date').value;
+  return { start, end };
+}
+
+function getPeriodLogs() {
+  const { start, end } = getPeriodBounds();
+  if (!start || !end) return dailyLogs;
+  return dailyLogs.filter(log => log.date >= start && log.date <= end);
+}
+
+function getSavingGoal() {
+  return Number(document.getElementById('saving-goal').value) || 0;
+}
+
+function getSelectedCategories() {
+  return [...document.querySelectorAll('input[name="category"]:checked')].map(input => input.value);
+}
+
+function setSelectedCategories(categories) {
+  const wanted = new Set(categories || []);
+  document.querySelectorAll('input[name="category"]').forEach(input => {
+    input.checked = wanted.has(input.value);
+  });
+  renderMostSpentOptions();
+}
+
+function renderCategoryInputs() {
+  document.getElementById('category-list').innerHTML = CATS.map((cat, index) => `
+    <label class="category-option">
+      <input type="checkbox" name="category" value="${cat.name}" ${index < 3 ? 'checked' : ''}>
+      <span>${cat.name}</span>
+    </label>
+  `).join('');
+
+  document.querySelectorAll('input[name="category"]').forEach(input => {
+    input.addEventListener('change', () => {
+      const checked = getSelectedCategories();
+      if (checked.length > 3) input.checked = false;
+      renderMostSpentOptions();
+    });
+  });
+}
+
+function renderMostSpentOptions() {
+  const selected = getSelectedCategories();
+  const options = (selected.length ? selected : CATS.slice(0, 3).map(cat => cat.name));
+  document.getElementById('most-category').innerHTML = options
+    .map(name => `<option value="${name}">${name}</option>`)
+    .join('');
+}
+
+function renderDailyCategoryOptions() {
+  document.getElementById('daily-category').innerHTML = CATS
+    .map(cat => `<option value="${cat.name}">${cat.name}</option>`)
+    .join('');
+}
+
+async function goToCategories() {
+  if (!validateGoalPeriod()) return;
+  await saveProfile();
+  showScreen('screen-categories');
+}
+
+function validateGoalPeriod() {
+  const start = document.getElementById('goal-start-date').value;
+  const end = document.getElementById('goal-date').value;
+  if (!start || !end) {
+    alert('Choose both start date and end date.');
+    return false;
+  }
+  if (new Date(start) > new Date(end)) {
+    alert('Start date must be before end date.');
+    return false;
+  }
+  return true;
+}
+
+async function goToMostSpent() {
+  const selected = getSelectedCategories();
+  if (selected.length !== 3) {
+    alert('Please select exactly 3 categories.');
+    return;
+  }
+  await saveProfile();
+  renderMostSpentOptions();
+  showScreen('screen-most');
+}
+
+async function generateBudget() {
+  await saveProfile();
+  setupLocked = isProfileComplete();
+  updateSetupLockUI();
+  showScreen('screen-loading');
+  setTimeout(() => {
+    calculateBudget();
+    renderBudget();
+    showScreen('screen-budget');
+  }, 900);
+}
+
+function calculateBudget() {
+  const income = getIncome();
+  const savingGoal = getSavingGoal();
+  const selected = getSelectedCategories();
+  const most = document.getElementById('most-category').value;
+  const spendable = Math.max(income - savingGoal - getDailyExpenseTotal(), 0);
+  const totalWeight = selected.reduce((sum, name) => {
+    const cat = CATS.find(item => item.name === name);
+    return sum + (cat ? cat.recommended : 0.1) + (name === most ? 0.05 : 0);
+  }, 0);
+
+  budgetRows = selected.map(name => {
+    const cat = CATS.find(item => item.name === name);
+    const weight = (cat ? cat.recommended : 0.1) + (name === most ? 0.05 : 0);
+    const amount = totalWeight ? Math.round(spendable * (weight / totalWeight)) : 0;
+    return { name, amount };
+  });
+}
+
+function renderBudget() {
+  updateWallet();
+  const income = getIncome();
+  const monthlyIncome = Number(document.getElementById('income-input').value) || 0;
+  const savingGoal = getSavingGoal();
+  const spentToday = getDailyExpenseTotal();
+  const earnedToday = getPeriodLogs().reduce((sum, log) => sum + log.earn, 0);
+  const walletAmount = monthlyIncome + earnedToday - spentToday;
+  const totalForPie = budgetRows.reduce((sum, row) => sum + row.amount, 0) + savingGoal;
+  const pieRows = [
+    ...budgetRows.map(row => ({ ...row, color: CAT_COLORS[row.name] || '#c8c8c8' })),
+    { name: 'save goal', amount: savingGoal, color: CAT_COLORS.goal }
+  ].filter(row => row.amount > 0);
+  renderPieChart(pieRows, totalForPie, walletAmount);
+  renderBudgetExplanation(monthlyIncome, earnedToday, spentToday, walletAmount, savingGoal);
+  renderGoalStatus(monthlyIncome, walletAmount, savingGoal, spentToday);
+  renderBudgetListTitle(walletAmount, savingGoal);
+  document.getElementById('budget-list').innerHTML = budgetRows.map(row => `
+    <div class="budget-row">
+      <span>${row.name}</span>
+      <span>RM ${row.amount}</span>
+    </div>
+  `).join('');
+}
+
+function renderBudgetListTitle(walletAmount, savingGoal) {
+  const periodBudget = Math.max(0, walletAmount - savingGoal);
+  const start = document.getElementById('goal-start-date').value || 'start date';
+  const end = document.getElementById('goal-date').value || 'end date';
+  document.getElementById('budget-list-title').textContent =
+    `Suggested period spending (${start} to ${end}): RM${periodBudget} after save goal.`;
+}
+
+function renderGoalStatus(monthlyIncome, walletAmount, savingGoal, spentToday) {
+  const savedPct = monthlyIncome > 0 ? Math.max(0, (walletAmount / monthlyIncome) * 100) : 0;
+  const goalPct = monthlyIncome > 0 ? Math.max(0, (savingGoal / monthlyIncome) * 100) : 0;
+  const progressPct = savingGoal > 0 ? Math.min(100, Math.max(0, (walletAmount / savingGoal) * 100)) : 100;
+  const dailyBurnRisk = monthlyIncome > 0 ? (spentToday / monthlyIncome) * 100 : 0;
+  const start = new Date(document.getElementById('goal-start-date').value);
+  const end = new Date(document.getElementById('goal-date').value);
+  const now = new Date();
+  const totalDays = Math.max(1, Math.ceil((end - start) / 86400000));
+  const elapsedDays = Math.min(totalDays, Math.max(0, Math.ceil((now - start) / 86400000)));
+  const expectedProgress = savingGoal > 0 ? Math.min(100, (elapsedDays / totalDays) * 100) : 100;
+
+  let status = 'Goal status: on track';
+  let detail = `Saved ${savedPct.toFixed(1)}% of income. You have ${progressPct.toFixed(0)}% of your RM${savingGoal} goal.`;
+
+  if (walletAmount >= savingGoal && dailyBurnRisk <= 25) {
+    status = 'Goal status: very likely';
+    detail = `Saved ${savedPct.toFixed(1)}% of income, above the ${goalPct.toFixed(1)}% needed for this goal.`;
+  } else if (walletAmount >= savingGoal) {
+    status = 'Goal status: possible';
+    detail = `Goal is reached now, but logged expenses are high. Keep spending controlled.`;
+  } else if (progressPct >= expectedProgress) {
+    status = 'Goal status: on schedule';
+    detail = `Progress is ${progressPct.toFixed(0)}%; expected by now is ${expectedProgress.toFixed(0)}% for this period.`;
+  } else if (progressPct >= 70) {
+    status = 'Goal status: close';
+    detail = `Saved ${progressPct.toFixed(0)}% of the goal. Need RM${Math.ceil(savingGoal - walletAmount)} more.`;
+  } else if (progressPct >= 40) {
+    status = 'Goal status: at risk';
+    detail = `Saved ${progressPct.toFixed(0)}% of the goal. Reduce daily spending to improve the chance.`;
+  } else {
+    status = 'Goal status: unlikely';
+    detail = `Only ${progressPct.toFixed(0)}% of the goal is covered by current money. Add earnings or cut expenses.`;
+  }
+
+  document.getElementById('goal-status').innerHTML = `
+    <strong>${status}</strong>
+    ${detail}
+  `;
+}
+
+function renderPieChart(rows, total, walletAmount) {
+  let cursor = 0;
+  const stops = rows.map(row => {
+    const start = cursor;
+    const pct = total > 0 ? (row.amount / total) * 100 : 0;
+    cursor += pct;
+    return `${row.color} ${start.toFixed(2)}% ${cursor.toFixed(2)}%`;
+  }).join(', ');
+
+  document.getElementById('budget-summary').innerHTML = `
+    <div class="pie-chart" style="background:conic-gradient(${stops || '#d9d9d9 0% 100%'});">
+      <div class="pie-center">
+        budget left
+        <strong>RM${walletAmount}</strong>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('pie-legend').innerHTML = rows.filter(row => row.name !== 'save goal').map(row => `
+    <div class="pie-legend-item">
+      <span class="pie-dot" style="background:${row.color}"></span>
+      <span class="pie-legend-name">${row.name} RM${row.amount}</span>
+    </div>
+  `).join('');
+}
+
+function renderBudgetExplanation(monthlyIncome, earnedToday, spentToday, walletAmount, savingGoal) {
+  const gap = Math.max(0, savingGoal - Math.max(0, walletAmount - getDailyExpenseTotal()));
+  const tip = walletAmount >= savingGoal
+    ? `Tip: keep daily spending steady to protect your RM${savingGoal} goal.`
+    : `Tip: save RM${gap} more or reduce expenses to reach RM${savingGoal}.`;
+
+  document.getElementById('budget-explain').innerHTML = `
+    Budget left = monthly income RM${monthlyIncome} + logged earn RM${earnedToday} - logged expense RM${spentToday} = RM${walletAmount}.
+    <div class="budget-tip">${tip}</div>
+  `;
+}
+
+function showCalendar() {
+  updateWallet();
+  renderCalendar();
+  renderWarning();
+  showScreen('screen-calendar');
+}
+
+function changeCalendarMonth(offset) {
+  calendarViewDate = new Date(calendarViewDate.getFullYear(), calendarViewDate.getMonth() + offset, 1);
+  renderCalendar();
+}
+
+function showRescue() {
+  updateWallet();
+  renderRescue();
+  showScreen('screen-rescue');
+}
+
+function showDailyLog() {
+  updateWallet();
+  renderDailyCategoryOptions();
+  renderDailyLogList();
+  showScreen('screen-daily-log');
+}
+
+function renderCalendar() {
+  const startDate = new Date(document.getElementById('goal-start-date').value);
+  const goalDate = new Date(document.getElementById('goal-date').value);
+  const view = calendarViewDate;
+  const days = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+  const monthKey = toISODate(new Date(view.getFullYear(), view.getMonth(), 1)).slice(0, 7);
+  document.getElementById('calendar-month-label').textContent = view.toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric'
+  });
+  const dailyTotals = dailyLogs.reduce((totals, log) => {
+    if (!log.date.startsWith(monthKey)) return totals;
+    const day = Number(log.date.slice(8, 10));
+    totals[day] = totals[day] || { expense: 0, earn: 0 };
+    totals[day].expense += log.expense;
+    totals[day].earn += log.earn;
+    return totals;
+  }, {});
+  const goalDay = goalDate.getMonth() === view.getMonth() && goalDate.getFullYear() === view.getFullYear()
+    ? goalDate.getDate()
+    : null;
+
+  document.getElementById('calendar-grid').innerHTML = Array.from({ length: days }, (_, index) => {
+    const day = index + 1;
+    const totals = dailyTotals[day];
+    const currentDay = new Date(view.getFullYear(), view.getMonth(), day);
+    const inGoalPeriod = currentDay >= new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
+      && currentDay <= new Date(goalDate.getFullYear(), goalDate.getMonth(), goalDate.getDate());
+    const classes = [
+      'calendar-day',
+      day === goalDay ? 'goal-day' : '',
+      inGoalPeriod ? 'has-log' : '',
+      totals ? 'has-log' : ''
+    ].filter(Boolean).join(' ');
+    const money = totals
+      ? `<span class="calendar-money">-RM${totals.expense}<br>+RM${totals.earn}</span>`
+      : '';
+    return `<div class="${classes}"><span>${day}</span>${money}</div>`;
+  }).join('');
+}
+
+function renderWarning() {
+  const income = getIncome();
+  const savingGoal = getSavingGoal();
+  const totalRecommended = budgetRows.reduce((sum, row) => sum + row.amount, 0) + getDailyExpenseTotal();
+  const overBudget = totalRecommended + savingGoal > income;
+  const remaining = income - totalRecommended - savingGoal;
+
+  if (overBudget) {
+    document.getElementById('warning-title').textContent = 'warning';
+    document.getElementById('warning-detail').textContent = `Your goal is over budget by RM ${Math.abs(remaining)}. Reduce expenses or lower the saving goal.`;
+  } else {
+    document.getElementById('warning-title').textContent = 'warning';
+    document.getElementById('warning-detail').textContent = `You have RM ${remaining} buffer after your goal and recommended expenses.`;
+  }
+}
+
+function renderRescue() {
+  const income = getIncome();
+  const savingGoal = getSavingGoal();
+  const totalRecommended = budgetRows.reduce((sum, row) => sum + row.amount, 0) + getDailyExpenseTotal();
+  const remaining = income - totalRecommended - savingGoal;
+  const overAmount = Math.max(0, Math.abs(remaining));
+  const safeDaily = Math.max(0, Math.floor((income - savingGoal) / 30));
+
+  if (remaining < 0) {
+    const cuts = buildRecoveryCuts(overAmount);
+    document.getElementById('overspend-line').textContent = `you have overspend RM${overAmount}`;
+    document.getElementById('rescue-box').innerHTML = `
+      To recover this month:<br>
+      1. ${cuts[0]}<br>
+      2. ${cuts[1]}<br>
+      3. ${cuts[2]}<br><br>
+      New safe daily budget: RM${safeDaily}/day
+    `;
+  } else {
+    document.getElementById('overspend-line').textContent = `you still have RM${remaining} buffer`;
+    document.getElementById('rescue-box').innerHTML = `
+      To stay on track this month:<br>
+      1. Keep daily spending below RM${safeDaily}<br>
+      2. Save RM${savingGoal} before extra spending<br>
+      3. Review your highest category weekly<br><br>
+      Safe daily budget: RM${safeDaily}/day
+    `;
+  }
+}
+
+function buildRecoveryCuts(amount) {
+  const first = Math.ceil(amount * 0.54);
+  const second = Math.ceil(amount * 0.22);
+  const third = Math.max(0, amount - first - second);
+  const most = document.getElementById('most-category').value || 'shopping';
+  return [
+    `Pause ${most} for 10 days: save RM${first}`,
+    `Limit cafe drinks to 2/week: save RM${second}`,
+    `Use bus instead of Grab twice/week: save RM${third}`
+  ];
+}
+
+async function saveDailyLog() {
+  const expense = Number(document.getElementById('daily-expense').value) || 0;
+  const earn = Number(document.getElementById('daily-earn').value) || 0;
+  const category = document.getElementById('daily-category').value;
+  const date = document.getElementById('daily-date').value || toISODate(new Date());
+
+  if (expense <= 0 && earn <= 0) {
+    alert('Add an expense or earning first.');
+    return;
+  }
+
+  const log = {
+    expense,
+    earn,
+    category,
+    date
+  };
+  const id = await saveDailyLogToSupabase(log);
+  dailyLogs.unshift({ ...log, id });
+
+  document.getElementById('daily-expense').value = '';
+  document.getElementById('daily-earn').value = '';
+  document.getElementById('daily-date').value = toISODate(new Date());
+  await saveProfile();
+  calculateBudget();
+  renderBudget();
+  updateWallet();
+  renderDailyLogList();
+}
+
+function renderDailyLogList() {
+  const list = document.getElementById('daily-log-list');
+  const periodLogs = getPeriodLogs();
+  const totalExpense = periodLogs.reduce((sum, log) => sum + log.expense, 0);
+  const totalEarn = periodLogs.reduce((sum, log) => sum + log.earn, 0);
+  if (!periodLogs.length) {
+    list.innerHTML = `
+      <div class="log-totals">
+        <div class="log-total-box">total expense<strong>RM0</strong></div>
+        <div class="log-total-box">total earn<strong>RM0</strong></div>
+      </div>
+      <div class="log-empty">No daily logs yet</div>
+    `;
+    return;
+  }
+
+  list.innerHTML = `
+    <div class="log-totals">
+      <div class="log-total-box">total expense<strong>RM${totalExpense}</strong></div>
+      <div class="log-total-box">total earn<strong>RM${totalEarn}</strong></div>
+    </div>
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th>date/day</th>
+          <th>category</th>
+          <th>expense</th>
+          <th>earn</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${periodLogs.map(log => `
+          <tr>
+            <td>${formatLogDate(log.date)}</td>
+            <td>${log.category}</td>
+            <td>-RM${log.expense}</td>
+            <td>+RM${log.earn}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function formatLogDate(value) {
+  const date = new Date(value + 'T00:00:00');
+  const day = date.toLocaleDateString('en-US', { weekday: 'short' });
+  return `${value.slice(5)} ${day}`;
+}
+
+init();
+</script>
+</body>
+</html>
