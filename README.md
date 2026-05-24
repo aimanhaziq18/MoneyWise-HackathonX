@@ -1,6 +1,7 @@
 # MoneyWise
 
 A smart budgeting app for Malaysian students. Log daily spending, scan receipts with OCR, and get AI-powered financial coaching from Claude.
+https://moneywise.up.railway.app/    <-------- ONLINE HOSTED USING RAILWAY
 
 ## Tech Stack
 
